@@ -129,23 +129,34 @@
   .status-detail b{color:var(--ink);font-weight:600;}
   .status-detail .mono{color:var(--ink);}
 
-  .countdown{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .countdown{
+    display:flex;flex-direction:column;gap:4px;min-width:0;
+    align-items:center;text-align:center;
+    padding:18px 14px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:var(--paper);
+  }
   .countdown .cd-value{
-    font-size:clamp(1.5rem,7.5vw,2.6rem);
+    font-size:clamp(1.7rem,8.5vw,3rem);
     font-weight:600;
     letter-spacing:.01em;
     line-height:1.15;
+    overflow-wrap:anywhere;
   }
   .countdown .cd-label{
     font-family:'Archivo',sans-serif;
-    font-size:.74rem;
+    font-size:.76rem;
     text-transform:uppercase;
     letter-spacing:.08em;
     color:var(--muted);
-    font-weight:600;
+    font-weight:700;
   }
+  .countdown.open{background:var(--open-bg);border-color:var(--open);}
   .countdown.open .cd-value{color:var(--open);}
+  .countdown.closed{background:var(--closed-bg);border-color:var(--closed);}
   .countdown.closed .cd-value{color:var(--closed);}
+  .countdown.soon{background:var(--amber-bg);border-color:var(--amber);}
   .countdown.soon .cd-value{color:var(--amber);}
 
   .windows{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;}
@@ -160,16 +171,7 @@
     background:var(--paper);
   }
   .window.active{border-color:var(--open);background:var(--open-bg);}
-  .window .range{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.98rem;letter-spacing:.01em;text-align:center;}
-  .window .range .daytag{
-    font-family:'Archivo',sans-serif;
-    font-weight:600;
-    font-size:.6rem;
-    text-transform:uppercase;
-    letter-spacing:.04em;
-    color:var(--accent);
-    margin-left:2px;
-  }
+  .window .range{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.98rem;letter-spacing:.01em;text-align:center;overflow-wrap:anywhere;}
   .window .label{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px;text-align:center;}
 
   .browse-group-label{
@@ -184,6 +186,7 @@
   .postes{display:flex;flex-wrap:wrap;gap:10px;}
   .poste{
     flex:1 1 200px;
+    min-width:0;
     border:1px solid var(--line);
     border-radius:10px;
     padding:10px 12px;
@@ -193,7 +196,7 @@
     font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;
     color:var(--muted);margin-bottom:4px;font-weight:600;
   }
-  .poste .poste-value{font-size:.92rem;font-weight:600;line-height:1.5;}
+  .poste .poste-value{font-size:.92rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere;}
   .poste .poste-value .po{color:var(--accent);}
   .poste .poste-note{font-size:.72rem;color:var(--muted);margin-top:2px;font-family:'Archivo',sans-serif;}
 
@@ -477,23 +480,25 @@ function renderWindows(container, dayIdx, highlightAbs){
     const div=document.createElement('div');
     div.className='window';
 
-    let startAbs, ouvHtml;
+    let startAbs, ouvHtml, crossedFromVeille=false;
     if(ouv!==null){
       startAbs = dayIdx*1440+toMin(ouv);
       ouvHtml = ouv;
     } else {
       const t = neighborOpenTime(dayIdx);
       startAbs = t!==null ? (dayIdx-1)*1440+toMin(t) : null;
-      ouvHtml = t!==null ? t+'&nbsp;<span class="daytag">veille</span>' : '…';
+      ouvHtml = t!==null ? t : '…';
+      crossedFromVeille = t!==null;
     }
-    let endAbs, fermHtml;
+    let endAbs, fermHtml, crossesToLendemain=false;
     if(ferm!==null){
       endAbs = dayIdx*1440+toMin(ferm);
       fermHtml = ferm;
     } else {
       const t = neighborCloseTime(dayIdx);
       endAbs = t!==null ? (dayIdx+1)*1440+toMin(t) : null;
-      fermHtml = t!==null ? t+'&nbsp;<span class="daytag">lend.</span>' : '…';
+      fermHtml = t!==null ? t : '…';
+      crossesToLendemain = t!==null;
     }
 
     if(highlightAbs!==undefined && startAbs!==null && endAbs!==null && highlightAbs>=startAbs && highlightAbs<endAbs){
@@ -501,12 +506,15 @@ function renderWindows(container, dayIdx, highlightAbs){
     }
     const range=document.createElement('div');
     range.className='range mono';
-    range.innerHTML=ouvHtml+'–'+fermHtml;
+    range.textContent=ouvHtml+' – '+fermHtml;
     const label=document.createElement('div');
     label.className='label';
     if(startAbs!==null && endAbs!==null){
       const durMin = endAbs-startAbs;
-      label.textContent = 'ouverte '+Math.floor(durMin/60)+' h '+String(durMin%60).padStart(2,'0');
+      let txt = 'ouverte '+Math.floor(durMin/60)+' h '+String(durMin%60).padStart(2,'0');
+      if(crossedFromVeille) txt = 'depuis la veille · '+txt;
+      if(crossesToLendemain) txt += ' · finit le lendemain';
+      label.textContent = txt;
     } else {
       label.textContent = 'fenêtre';
     }
